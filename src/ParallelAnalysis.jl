@@ -1,5 +1,5 @@
 module ParallelAnalysis
 
-# Write your package code here.
+using MultivariateStats, StatsFuns, Statistics
 
 end
