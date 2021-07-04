@@ -147,4 +147,9 @@ function polycor(X)
     return r
 end
 
+function replace_diagonal!(M)
+    offdiagind(A) = (ι for ι in CartesianIndices(A) if ι[1] ≠ ι[2])
+    L = maximum(M[collect(offdiagind(M))])
+    M[diagind(M)] .= L
+end
 
