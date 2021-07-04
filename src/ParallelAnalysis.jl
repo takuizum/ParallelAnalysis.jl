@@ -23,7 +23,7 @@ include("FA.jl")
 export fa
 
 include("IRT.jl")
-export generate_response, v2vv
+export generate_response, v2vv, heuristicIRT
 
 include("PA.jl")
 export parallel
