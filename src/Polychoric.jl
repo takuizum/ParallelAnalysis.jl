@@ -133,7 +133,6 @@ polycor(obs)
 ```
 """
 function polycor(X)
-    println("Compute polychoric correlations.")
     J = size(X, 2)
     r = Matrix{Union{Missing, AbstractFloat}}(undef, J, J)
     r[diagind(r)] .= 1.0
