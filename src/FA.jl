@@ -1,11 +1,11 @@
 
-struct fa
+struct FA{T1<:Real, F1<:FactorAnalysis}
     data
-    fit
+    fit::F1
     cor
-    loadings
-    cov
-    projection
+    loadings::AbstractArray{T1}
+    cov::AbstractArray{T1}
+    projection::AbstractArray{T1}
     nfactors
     dimension
 end
@@ -15,18 +15,18 @@ end
 Factor analysis wrapper.
 
 `M` is a dataframe to be fitted. `nfactors` is the number of the latent traits.
+`cor_method` is method for calculating the correlation matrix.
 `args` are arguments for FA model. See, `MultivariateStats.fit(FactorAnalysis, X; args...)`(https://multivariatestatsjl.readthedocs.io/en/latest/fa.html).
 `maxoutdim` was preferentially fixed by `nfactors` and `mean` was fixed by 0. User can modified only `method`, `tol`, `tot` and `η`.
 """
 
-function fa(M; method = :Polychoric, nfactors = 1, args...)
-    if method == :Polychoric
+function fa(M; cor_method = :Polychoric, nfactors = 1, args...)
+    if cor_method == :Polychoric
         fa_polychoric(M, nfactors; args...)
-    elseif method == :Pearson
+    elseif cor_method == :Pearson
         fa_pearson(M, nfactors; args...)
     else
-        @warn "`method` should be choosen from (:Pearson, :Polychoric)."
-        return nothing
+        throw(ArgumentError("`method` should be choosen from (:Pearson, :Polychoric)."))
     end
 end
 
@@ -34,31 +34,31 @@ function fa_polychoric(M, nfactors = 1; args...)
     S = convert(Matrix{Float64}, polycor(M))
     n = size(S, 1)
     ft = fit(FactorAnalysis, S; mean = fill(0.0, n), maxoutdim = nfactors, args...)
-    fa(M, ft, :Polychoric, loadings(ft), cov(ft), projection(ft), nfactors, n)
+    FA(M, ft, :Polychoric, loadings(ft), cov(ft), projection(ft), nfactors, n)
 end
 function fa_pearson(M, nfactors = 1; args...)
     S = convert(Matrix{Float64}, cor(M))
     n = size(S, 1)
     ft = fit(FactorAnalysis, S; mean = fill(0.0, n), maxoutdim = nfactors, args...)
-    fa(M, ft, :Pearson, loadings(ft), cov(ft), projection(ft), nfactors, n)
+    FA(M, ft, :Pearson, loadings(ft), cov(ft), projection(ft), nfactors, n)
 end
 
 """
-    cov(x::fa)
+    cov(x::FA)
 Extract covariance matrix from FA models.
 """
-function cov(x::fa)
+function cov(x::FA)
     x.cov
 end
 
 """
-    loadings(x::fa)
+    loadings(x::FA)
 Extract factor loadings from FA models.
 """
-function loadings(x::fa)
+function loadings(x::FA)
     x.loadings
 end
 
-function show(io::IO, x::fa)
+function show(io::IO, x::FA)
     println(io, "Factor Analysis $(x.cor)")
 end
