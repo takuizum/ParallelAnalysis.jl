@@ -16,6 +16,7 @@ StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 Trapz = "592b5752-818d-11e9-1e9a-2b8ca4a44cd1"
 
 [compat]
+MultivariateStats = "0.8"
 QuadGK = "2"
 julia = "1"
 
