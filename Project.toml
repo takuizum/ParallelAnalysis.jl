@@ -17,6 +17,10 @@ Trapz = "592b5752-818d-11e9-1e9a-2b8ca4a44cd1"
 
 [compat]
 DataFrames = "1"
+Trapz = "2"
+StatsFuns = "0.9"
+MultivariateStats = "0.8"
+QuadGK = "2"
 julia = "1"
 
 [extras]
