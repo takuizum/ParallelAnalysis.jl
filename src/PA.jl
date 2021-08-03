@@ -48,7 +48,7 @@ function parallel(data, niter, f = fa)
         eig_sim[i, :] = sort!(eigvals(Symmetric(M)); rev = true)
     end
     eig_sim_mean = mean(eig_sim, dims = 1)[:]
-    eig_sim_bounds = map(x -> quantile(x, [0.5, 0.95]), eachcol(eig_sim))
+    eig_sim_bounds = map(x -> quantile(x, [0.025, 0.975]), eachcol(eig_sim))
     return Parallel(eig_real, eig_sim_mean, eig_sim_bounds, niter, Symbol(f), Symbol(fit.cor))
 end
 
@@ -65,12 +65,12 @@ end
     
     @series begin
         # simulated mean
-        label --> "Simulated mean"
+        label --> "Resampled mean"
         linecolor --> :red
         linestyle --> :dash
         bds = hcat(pa.bounds...)
         l = bds[1, :] .- pa.simulated
-        u = bds[2, :] .- pa.simulated
+        u = pa.simulated .- bds[2, :]
         ribbon := (l, u)
         pa.simulated
     end
