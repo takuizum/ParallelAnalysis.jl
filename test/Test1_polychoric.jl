@@ -1,4 +1,4 @@
-using Distributions, ParallelAnalysis
+using Distributions
 # Support function
 
 @testset "polycor" begin
@@ -6,6 +6,7 @@ using Distributions, ParallelAnalysis
         sum(th .< x)
     end
     # Gen sim data.
+    Random.seed!(1234)
     raw = rand(MvNormal([0, 0], [1 .5; .5 1]), 10000)'
     τ1 = sort!(rand(Uniform(-2, 2), 3))
     τ2 = sort!(rand(Uniform(-2, 2), 4))
@@ -16,7 +17,7 @@ using Distributions, ParallelAnalysis
     @test isapprox(sum(ctb.X, dims = 2), ctb.mx)
     @test isapprox(sum(ctb.X, dims = 1)[:], ctb.my)
     plc = ParallelAnalysis.polyc(ctb)
-    @test 0 ≤ plc.ρ ≤ 1
+    @test 0.45 ≤ plc.ρ ≤ 0.55
     loss = ParallelAnalysis.loss(ctb, plc.τ₁, plc.τ₂, MvNormal([0, 0], [1.0 0.5; 0.5 1.0]))
     @test loss isa Real
 end
