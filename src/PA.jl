@@ -37,7 +37,7 @@ function parallel(data, niter, f = fa)
     elseif fit.cor == :Polychoric
         V = polycor(data)
     end
-    V[diagind(V)] = communarities(fit)
+    V[diagind(V)] = communalities(fit)
     eig_real = sort!(eigvals(Symmetric(V)); rev = true)
 
     # println("Prepare matrix.")
@@ -54,13 +54,13 @@ function parallel(data, niter, f = fa)
         # resample data
         rsm_fit = f(W)
         M = rsm_fit.mat
-        M[diagind(M)] = communarities(rsm_fit)
+        M[diagind(M)] = communalities(rsm_fit)
         rsm_sim[i, :] = sort!(eigvals(Symmetric(M)); rev = true)
 
         # simulated data
         sim_fit = fa_pearson(Z)
         R = sim_fit.mat
-        R[diagind(R)] = communarities(sim_fit)
+        R[diagind(R)] = communalities(sim_fit)
         eig_sim[i, :] = sort!(eigvals(Symmetric(R)); rev = true)
 
         next!(prg)

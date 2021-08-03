@@ -15,7 +15,7 @@ using Distributions, DataFrames
 using RecipesBase
 
 include("Polychoric.jl")
-export polycor, cov, loadings
+export polycor, cov, loadings, communalities
 
 include("RandomMatrix.jl")
 export random_matrix, random_sample
