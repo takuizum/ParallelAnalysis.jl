@@ -4,10 +4,11 @@ using MultivariateStats, StatsFuns, Statistics
 import Statistics: cov
 import MultivariateStats: loadings
 import Base: show
+using StatsBase: sample
 # Polychoric
-using Trapz: trapz
+using Trapz: trapz, @trapz
 using Optim: optimize, Brent
-using LinearAlgebra: LowerTriangular, diagind
+using LinearAlgebra: LowerTriangular, diagind, Symmetric
 using QuadGK: quadgk
 using Distributions, DataFrames
 # Plot recipes
@@ -17,7 +18,7 @@ include("Polychoric.jl")
 export polycor, cov, loadings
 
 include("RandomMatrix.jl")
-export random_matrix
+export random_matrix, random_sample
 
 include("FA.jl")
 export fa
