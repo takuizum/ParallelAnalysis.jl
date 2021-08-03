@@ -1,24 +1,37 @@
-using ParallelAnalysis
-using Random, Distributions, LinearAlgebra
 using StatsPlots
 
-Random.seed!(1234)
-a = rand(Uniform(0.5, 2.0), 30)
-b = [sort(rand(Uniform(-3, 3), 4); rev = false) for i in 1:30]
-θ = rand(Normal(0, 1), 3000)
+@testset "fa" begin
+    Random.seed!(1234)
+    a = rand(Uniform(0.5, 2.0), 30)
+    b = [sort(rand(Uniform(-3, 3), 4); rev = false) for i in 1:30]
+    θ = rand(Normal(0, 1), 3000)
+    resp = generate_response(θ, a, b)
+    
+    fit1 = fa(resp; method = :em)
+    @test all(loadings(fit1) .≤ 1.0)
+    fit2 = fa(resp; method = :cm)
+    @test all(loadings(fit2) .≤ 1.0)
+    fit3 = fa(resp; cor_method = :Pearson, method = :em)
+    @test all(loadings(fit3) .≤ 1.0)
+    
+    # @code_warntype fa(resp; method = :em)
+    # @profview fa(resp; method = :em)
+end
 
-resp = generate_response(θ, a, b)
+@testset "parallel" begin
+    Random.seed!(1234)
+    a = rand(Uniform(0.5, 2.0), 30)
+    b = [sort(rand(Uniform(-3, 3), 4); rev = false) for i in 1:30]
+    θ = rand(Normal(0, 1), 3000)
+    resp = generate_response(θ, a, b)
+    
+    par_fit1 = parallel(resp, 10, x -> fa(x; cor_method = :Polychoric))
+    @test ParallelAnalysis.findnfactors(par_fit1.real, par_fit1.resampled) == 1
+    par_fit2 = parallel(resp, 10, x -> fa(x; cor_method = :Pearson))
+    @test ParallelAnalysis.findnfactors(par_fit2.real, par_fit2.resampled) == 1
+    # @code_warntype parallel(resp, 10, x -> fa(x; cor_method = :Polychoric))
+    # @profview parallel(resp, 10, x -> fa(x; cor_method = :Polychoric))
+    # @code_warntype parallel(resp, 100, x -> fa(x; cor_method = :Pearson))
 
-fit1 = fa(resp; method = :Polychoric)
-fit2 = fa(resp; method = :Pearson)
-@code_warntype fa(resp; method = :Polychoric)
-
-cov(fit1) |> diagind
-test = cov(fit1)
-test[diagind(test)]
-maximum(test[collect(offdiag(test))])
-
-par_fit = parallel(resp, 10000, x -> fa(x; method = :Polychoric))
-
-
-plot(par_fit)
+    plot(par_fit1)
+end

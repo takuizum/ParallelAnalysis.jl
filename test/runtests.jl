@@ -1,6 +1,7 @@
 using ParallelAnalysis
-using Test
+using Test, Random
 
 @testset "ParallelAnalysis.jl" begin
-    # Write your tests here.
+    include("Test1_polychoric.jl")
+    include("Test2_parallel.jl")
 end
