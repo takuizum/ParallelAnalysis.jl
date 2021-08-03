@@ -1,12 +1,12 @@
 module ParallelAnalysis
 
-using MultivariateStats, StatsFuns, Statistics
+using MultivariateStats, StatsFuns, Statistics, ProgressMeter
 import Statistics: cov
 import MultivariateStats: loadings
 import Base: show
 using StatsBase: sample
 # Polychoric
-using Trapz: trapz, @trapz
+using Trapz: trapz#, @trapz
 using Optim: optimize, Brent
 using LinearAlgebra: LowerTriangular, diagind, Symmetric
 using QuadGK: quadgk
