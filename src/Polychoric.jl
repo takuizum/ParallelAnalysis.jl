@@ -57,7 +57,10 @@ Compute, more efficiently than using the trapezoidal rule, the volume of the biv
 function ppdf(f, m)
     g(h, k, θ) = exp(-0.5 * (h^2 + k^2 - 2*h*k*θ)/(1-θ^2)) / sqrt(1-θ^2 )
     Φ(x) = cdf(Normal(0, 1), x)
-    return quadgk(t->g(m[1], m[2], t), 0, f.Σ[1,2])[1] / 2π + Φ(m[1])*Φ(m[2])
+    # return quadgk(t->g(m[1], m[2], t), 0, f.Σ[1,2])[1] / 2π + Φ(m[1])*Φ(m[2])
+    v = range(0, f.Σ[1,2], length = 20) 
+    V = @trapz v x g(m[1], m[2], x)
+    return V / 2π + Φ(m[1])*Φ(m[2])
 end
 
 # Numerical integration with sophisticated 1dim version
@@ -134,7 +137,7 @@ polycor(obs)
 """
 function polycor(X)
     J = size(X, 2)
-    r = Matrix{Union{Missing, AbstractFloat}}(undef, J, J)
+    r = Matrix{AbstractFloat}(undef, J, J)
     r[diagind(r)] .= 1.0
     for i in 1:J
         x = @view X[:, i]
