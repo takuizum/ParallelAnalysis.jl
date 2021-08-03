@@ -62,3 +62,7 @@ end
 function show(io::IO, x::FA)
     println(io, "Factor Analysis $(x.cor)")
 end
+
+function communarities(x::FA)
+    return loadings(x) .^ 2
+end
