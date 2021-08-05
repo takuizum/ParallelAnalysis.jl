@@ -1,4 +1,4 @@
-using StatsPlots
+using StatsPlots, Distributions
 
 @testset "fa" begin
     Random.seed!(1234)
@@ -26,12 +26,17 @@ end
     resp = generate_response(θ, a, b)
     
     par_fit1 = parallel(resp, 10, x -> fa(x; cor_method = :Polychoric))
-    @test ParallelAnalysis.findnfactors(par_fit1.real, par_fit1.resampled) == 1
+    @test ParallelAnalysis.findnfactors(par_fit1.FA.real, par_fit1.FA.resampled) == 1
+    @test ParallelAnalysis.findnfactors(par_fit1.PCA.real, par_fit1.PCA.resampled) == 1
     par_fit2 = parallel(resp, 10, x -> fa(x; cor_method = :Pearson))
-    @test ParallelAnalysis.findnfactors(par_fit2.real, par_fit2.resampled) == 1
+    @test ParallelAnalysis.findnfactors(par_fit2.FA.real, par_fit2.FA.resampled) == 1
+    @test ParallelAnalysis.findnfactors(par_fit2.PCA.real, par_fit2.PCA.resampled) == 1
     # @code_warntype parallel(resp, 10, x -> fa(x; cor_method = :Polychoric))
     # @profview parallel(resp, 10, x -> fa(x; cor_method = :Polychoric))
     # @code_warntype parallel(resp, 100, x -> fa(x; cor_method = :Pearson))
 
+    plot(par_fit1.PCA)
+    plot(par_fit1.FA)
     plot(par_fit1)
+    plot(par_fit1, markershape = :none)
 end
