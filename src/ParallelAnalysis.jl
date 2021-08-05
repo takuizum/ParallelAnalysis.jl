@@ -1,14 +1,14 @@
 module ParallelAnalysis
 
 using MultivariateStats, StatsFuns, Statistics, ProgressMeter
-import Statistics: cov
+import Statistics: cov, mean, std
 import MultivariateStats: loadings
 import Base: show
 using StatsBase: sample
 # Polychoric
 using Trapz: trapz#, @trapz
 using Optim: optimize, Brent
-using LinearAlgebra: LowerTriangular, diagind, Symmetric
+using LinearAlgebra: LowerTriangular, diagind, Symmetric, Diagonal
 using QuadGK: quadgk
 using Distributions, DataFrames
 # Plot recipes
@@ -21,7 +21,7 @@ include("RandomMatrix.jl")
 export random_matrix, random_sample
 
 include("FA.jl")
-export fa
+export fa, factorscores, Bartllet, BayesMean
 
 include("IRT.jl")
 export generate_response, v2vv, heuristicIRT
