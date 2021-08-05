@@ -18,3 +18,12 @@ scatter(vcat(b...), vcat(heuIRT.b...))
 
 new_resp = generate_response(heuIRT, BayesMean())
 @code_warntype generate_response(heuIRT, BayesMean())
+
+
+mpa_sim = modified_parallel(resp, 100, BayesMean())
+
+mpa_sim.real
+mpa_sim.simulated
+mpa_sim.simulated_bounds
+
+plot(mpa_sim)

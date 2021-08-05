@@ -29,6 +29,9 @@ export generate_response, v2vv, heuristicIRT
 include("PA.jl")
 export parallel
 
+include("MPA.jl")
+export modified_parallel
+
 export show
 
 end
