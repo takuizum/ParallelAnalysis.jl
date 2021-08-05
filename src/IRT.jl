@@ -38,10 +38,11 @@ end
 
 # Heuristic IRT parameter estimation based on the polychoric correlations.
 
-mutable struct HeuristicIRT
-    a
-    d
-    b
+mutable struct HeuristicIRT{T <: FA, V1 <: AbstractArray, V2 <: AbstractArray}
+    a::V1
+    d::V2
+    b::V2
+    FA::T
 end
 
 function transform_FA_IRT(α::T, τ::Vector{T}) where T <: Real
@@ -73,6 +74,13 @@ function heuristicIRT(X; method = :em)
     replace_diagonal!(r)
     f = fit(FactorAnalysis, r; mean = fill(0.0, J), maxoutdim = 1, method = method)
     α = loadings(f)
+    famodels = FA(X, r, f, :Polychoric, α, cov(f), projection(f), 1, size(X, 1))
     tp = transform_FA_IRT.(α, τ)
-    return HeuristicIRT(getindex.(tp, 1), getindex.(tp, 2), getindex.(tp, 3))
+    return HeuristicIRT(getindex.(tp, 1), getindex.(tp, 2), getindex.(tp, 3), famodels)
+end
+
+
+function generate_response(x::HeuristicIRT, fsm::FactorScoreMethod)
+    θ = factorscores(x.FA, fsm)
+    generate_response(θ, x.a, x.b)
 end
