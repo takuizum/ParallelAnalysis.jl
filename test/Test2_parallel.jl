@@ -1,6 +1,6 @@
 using StatsPlots, Distributions, MultivariateStats, LinearAlgebra
 
-# @testset "fa" begin
+@testset "fa" begin
     Random.seed!(1234)
     a = rand(Uniform(0.5, 2.0), 30)
     b = [sort(rand(Uniform(-3, 3), 4); rev = false) for i in 1:30]
@@ -19,7 +19,7 @@ using StatsPlots, Distributions, MultivariateStats, LinearAlgebra
     # @code_warntype ParallelAnalysis.fsm2(fit1)
     # @code_warntype fa(resp; method = :em)
     # @profview fa(resp; method = :em)
-# end
+end
 
 @testset "parallel" begin
     Random.seed!(1234)
