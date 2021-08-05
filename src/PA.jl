@@ -1,5 +1,6 @@
 
-struct Parallel{T1<:AbstractVector, T2<:AbstractVector, T3 <: Symbol, T4<: Real}
+abstract type ParallelType end
+struct Parallel{T1<:AbstractVector, T2<:AbstractVector, T3 <: Symbol, T4<: Real} <: ParallelType
     real::T1
     simulated::T1
     simulated_bounds::T2
@@ -8,6 +9,11 @@ struct Parallel{T1<:AbstractVector, T2<:AbstractVector, T3 <: Symbol, T4<: Real}
     iter::T4
     reduction_method::T3
     correlation_method::T3
+end
+
+struct ParallelSets{T <: ParallelType}
+    FA::T
+    PCA::T
 end
 
 """
@@ -40,13 +46,13 @@ julia> begin Random.seed!(1234)
 
 julia> par_fit1 = parallel(resp, 10, x -> fa(x; cor_method = :Polychoric))
 Progress: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| Time: 0:00:02
-Parallel Analysis: 
-Dimension reduction: #39
-Correlation method: Polychoric
-Simulation size: 10
-Suggested the number of factors is 1 (based on resampling)
+Parallel Analysis:
+    Suggested that the number of factors is 1 (based on resampling)
+    Suggested that the number of componets is 1 (based on resampling)
 
 julia> plot(par_fit1) # visualize a result of parallel analysis
+
+julia> plot(par_fit1, markershape = :none) # Don't show noisy makers.
 
 
 
@@ -62,13 +68,16 @@ function parallel(data, niter, f = fa)
     elseif fit.cor == :Polychoric
         V = polycor(data)
     end
+    eig_real_pca = sort!(eigvals(Symmetric(V)); rev = true)
     V[diagind(V)] = communalities(fit)
-    eig_real = sort!(eigvals(Symmetric(V)); rev = true)
+    eig_real_fa = sort!(eigvals(Symmetric(V)); rev = true)
 
     # println("Prepare matrix.")
-    eig_sim = Matrix{eltype(eig_real)}(undef, niter, length(eig_real))
-    rsm_sim = similar(eig_sim)
-
+    eig_sim_fa = Matrix{eltype(eig_real_fa)}(undef, niter, length(eig_real_fa))
+    eig_sim_pca = Matrix{eltype(eig_real_pca)}(undef, niter, length(eig_real_pca))
+    rsm_sim_fa = similar(eig_sim_fa)
+    rsm_sim_pca = similar(eig_sim_pca)
+    
     prg = Progress(niter)
     # println("Start simulation!")
     Threads.@threads for i in 1:niter
@@ -79,23 +88,37 @@ function parallel(data, niter, f = fa)
         # resample data
         rsm_fit = f(W)
         M = rsm_fit.mat
+        rsm_sim_pca[i, :] = sort!(eigvals(Symmetric(M)); rev = true)
         M[diagind(M)] = communalities(rsm_fit)
-        rsm_sim[i, :] = sort!(eigvals(Symmetric(M)); rev = true)
+        rsm_sim_fa[i, :] = sort!(eigvals(Symmetric(M)); rev = true)
 
         # simulated data
         sim_fit = fa_pearson(Z)
         R = sim_fit.mat
+        eig_sim_pca[i, :] = sort!(eigvals(Symmetric(R)); rev = true)
         R[diagind(R)] = communalities(sim_fit)
-        eig_sim[i, :] = sort!(eigvals(Symmetric(R)); rev = true)
+        eig_sim_fa[i, :] = sort!(eigvals(Symmetric(R)); rev = true)
 
         next!(prg)
     end
-    eig_sim_mean = mean(eig_sim, dims = 1)[:]
-    eig_sim_bounds = map(x -> quantile(x, [0.025, 0.975]), eachcol(eig_sim))
-    rsm_sim_mean = mean(rsm_sim, dims = 1)[:]
-    rsm_sim_bounds = map(x -> quantile(x, [0.025, 0.975]), eachcol(rsm_sim))
 
-    return Parallel(eig_real, eig_sim_mean, eig_sim_bounds, rsm_sim_mean, rsm_sim_bounds, niter, Symbol(f), Symbol(fit.cor))
+    # summarize
+    eig_sim_fa_mean = mean(eig_sim_fa, dims = 1)[:]
+    eig_sim_fa_bounds = map(x -> quantile(x, [0.025, 0.975]), eachcol(eig_sim_fa))
+    rsm_sim_fa_mean = mean(rsm_sim_fa, dims = 1)[:]
+    rsm_sim_fa_bounds = map(x -> quantile(x, [0.025, 0.975]), eachcol(rsm_sim_fa))
+
+    eig_sim_pca_mean = mean(eig_sim_pca, dims = 1)[:]
+    eig_sim_pca_bounds = map(x -> quantile(x, [0.025, 0.975]), eachcol(eig_sim_pca))
+    rsm_sim_pca_mean = mean(rsm_sim_pca, dims = 1)[:]
+    rsm_sim_pca_bounds = map(x -> quantile(x, [0.025, 0.975]), eachcol(rsm_sim_pca))
+
+    ps = ParallelSets(
+        Parallel(eig_real_fa, eig_sim_fa_mean, eig_sim_fa_bounds, rsm_sim_fa_mean, rsm_sim_fa_bounds, niter, :FA, Symbol(fit.cor)),
+        Parallel(eig_real_pca, eig_sim_pca_mean, eig_sim_pca_bounds, rsm_sim_pca_mean, rsm_sim_pca_bounds, niter, :PCA, Symbol(fit.cor))
+    )
+
+    return ps
 end
 
 function findnfactors(x, y)
@@ -113,12 +136,17 @@ function Base.show(io::IO, x::Parallel)
     println(io, "Suggested the number of factors is $(findnfactors(x.real, x.resampled)) (based on resampling)")
 end
 
+function Base.show(io::IO, x::ParallelSets)
+    println(io, "Parallel Analysis:")
+    println(io, "   Suggested that the number of factors is $(findnfactors(x.FA.real, x.FA.resampled)) (based on resampling)")
+    println(io, "   Suggested that the number of componets is $(findnfactors(x.PCA.real, x.PCA.resampled)) (based on resampling)")
+end
 
 @recipe function f(pa::Parallel)
     
     @series begin
         # simulated mean
-        label --> "Simulated mean"
+        label --> "$(pa.reduction_method) - Simulated mean"
         linecolor --> :red
         fillcolor --> :red
         linestyle --> :dash
@@ -131,7 +159,7 @@ end
 
     @series begin
         # simulated mean
-        label --> "Resampled mean"
+        label --> "$(pa.reduction_method) - Resampled mean"
         linecolor --> :blue
         fillcolor --> :blue
         linestyle --> :dash
@@ -150,11 +178,27 @@ end
         [1]
     end
     
-    label --> "Real data"
+    label --> "$(pa.reduction_method) - Real data"
     linecolor --> :black
     yguide --> "Eigen values"
     xguide --> "The number of components"
     title --> "Parallel Analysis over $(pa.iter) simulation."
     ylims --> (-Inf, Inf)
     pa.real
+end
+
+@recipe function f(x::ParallelSets)
+    @series begin
+        markershape --> :dtriangle
+        markeralpha --> 0.5
+        markercolor --> :white
+        x.PCA 
+    end
+    @series begin
+        markershape --> :utriangle
+        markeralpha --> 0.5
+        markercolor --> :white
+        x.FA
+    end
+    nothing
 end
