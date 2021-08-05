@@ -138,7 +138,6 @@ polycor(obs)
 function polycor(X)
     J = size(X, 2)
     r = Matrix{AbstractFloat}(undef, J, J)
-    r[diagind(r)] .= 1.0
     for i in 1:J
         x = @view X[:, i]
         for j in i:J
@@ -147,6 +146,7 @@ function polycor(X)
             r[i, j] = r[j, i]
         end
     end
+    r[diagind(r)] .= 1.0
     return r
 end
 
