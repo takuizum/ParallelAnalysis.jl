@@ -1,6 +1,6 @@
 
-struct FA{T1<:Real, F1<:FactorAnalysis, R<:AbstractMatrix}
-    data
+struct FA{T1<:Real, F1<:FactorAnalysis, R<:AbstractMatrix, M<:Union{AbstractMatrix, AbstractDataFrame}}
+    data::M
     mat::R
     fit::F1
     cor
@@ -66,4 +66,43 @@ end
 
 function communalities(x::FA)
     return loadings(x) .^ 2
+end
+
+abstract type FactorScoreMethod end
+
+struct Bartllet <: FactorScoreMethod
+end
+
+struct BayesMean <: FactorScoreMethod
+end
+
+function factorscores(x::FA, fsm::FactorScoreMethod)
+    fsm isa Bartllet && return fsm1(x)
+    fsm isa BayesMean && return fsm2(x)
+end
+
+function scaled(v)
+    m = mean(v)
+    s = std(v)
+    (v .- m) ./ s
+end
+
+function fsm1(x)
+    X = Matrix(x.data)
+    X = hcat(map(scaled, eachcol(X))...)
+    Λ = x.fit.W
+    Ψ = Diagonal(var(x.fit))
+    f = [(Λ'Ψ^-1*Λ)^-1 *Λ'Ψ^-1 * i for i in eachrow(X)] # Bartlett's estimator
+    vcat(f...)
+end
+
+function fsm2(x)
+    X = Matrix(x.data)
+    X = hcat(map(scaled, eachcol(X))...)
+    Λ = x.fit.W
+    Ψ = Diagonal(var(x.fit))
+    # Σ = Λ*Λ' + Ψ
+    Σ = cov(x)
+    f =[Λ'Σ^-1 * i for i in eachrow(X)] # Bayes EAP
+    vcat(f...)
 end
