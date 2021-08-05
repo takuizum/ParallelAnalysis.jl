@@ -124,7 +124,7 @@ end
 function findnfactors(x, y)
     for i in axes(x, 1)
         comp = x[i:end] .> y[i:end]
-        findfirst(comp) != i && return i - 1
+        findfirst(comp) != 1 && return i - 1
     end
     return 0
 end
