@@ -62,7 +62,6 @@ julia> plot(par_fit1, markershape = :none) # Don't show noisy makers.
 function parallel(data, niter, f = fa)
     n, j = size(data)
     fit = f(data)
-    # println("Analyze read data.")
     if fit.cor == :Pearson
         V = cor(Matrix(data))
     elseif fit.cor == :Polychoric
@@ -72,14 +71,12 @@ function parallel(data, niter, f = fa)
     V[diagind(V)] = communalities(fit)
     eig_real_fa = sort!(eigvals(Symmetric(V)); rev = true)
 
-    # println("Prepare matrix.")
     eig_sim_fa = Matrix{eltype(eig_real_fa)}(undef, niter, length(eig_real_fa))
     eig_sim_pca = Matrix{eltype(eig_real_pca)}(undef, niter, length(eig_real_pca))
     rsm_sim_fa = similar(eig_sim_fa)
     rsm_sim_pca = similar(eig_sim_pca)
     
     prg = Progress(niter)
-    # println("Start simulation!")
     Threads.@threads for i in 1:niter
     
         W = random_sample(data)
