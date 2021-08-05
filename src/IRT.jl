@@ -15,6 +15,11 @@ function icc(x, θ, a, b)
     return p
 end
 
+
+"""
+    generate_response(θ, a, b)
+Genarete item response matrix based on GRM(for polytomous) and 2PLM(for dichotomous).
+"""
 function generate_response(θ, a, b)
     X = Matrix{Int64}(undef, length(θ), length(a))
     for j in axes(X, 2)
@@ -30,7 +35,7 @@ end
 
 """
     v2vv
-Transform vector to vector of vector
+Transform Vector to Matrix of Vector
 """
 function v2vv(v)
     return [[i] for i in v]
@@ -53,6 +58,13 @@ function transform_FA_IRT(α::T, τ::Vector{T}) where T <: Real
     return a, d[begin+1:end-1], b[begin+1:end-1]
 end
 
+"""
+    heuristicIRT(X; method = :em)
+Heuristic estimation method based on factor analysis model and polychoric correlation matrix.
+
+The estimates of b, difficulty parameters, are well approximate original IRT parameters, 
+however, a, discrimination parameters, tend to be over-estimated.
+"""
 function heuristicIRT(X; method = :em)
     J = size(X, 2)
     r = Matrix{Float64}(undef, J, J)
@@ -83,4 +95,5 @@ end
 function generate_response(x::HeuristicIRT, fsm::FactorScoreMethod)
     θ = factorscores(x.FA, fsm)
     generate_response(θ, x.a, x.b)
+    
 end
