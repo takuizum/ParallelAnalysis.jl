@@ -59,7 +59,7 @@ function heuristicIRT(X; method = :em)
     τ = Vector{Vector{Float64}}(undef, J)
     for i in 1:J
         x = @view X[:, i]
-        for j in i:J
+        for j in i+1:J
             y = @view X[:, j]
             p = polyc(x, y; verbose = false)
             r[j, i] = p.ρ

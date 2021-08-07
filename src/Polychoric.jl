@@ -141,7 +141,7 @@ function polycor(X)
     r[diagind(r)] .= 1.0
     for i in 1:J
         x = @view X[:, i]
-        for j in i:J
+        for j in i+1:J
             y = @view X[:, j]
             r[j, i] = polyc(x, y; verbose = false).ρ
             r[i, j] = r[j, i]
