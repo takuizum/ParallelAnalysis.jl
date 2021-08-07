@@ -18,7 +18,12 @@ end
 
 """
     parallel(data, niter, f = fa)
-Parallel Analysis.
+Parallel Analysis. Diagnosis the approximate dimensionality. 
+The result shows that eigenvalues from the read data sets and simulated and resampled data sets (the synthetic data sets).
+To show the result, read the prompt from the function, or use `plot` functition.
+`plot` returns eigen values line (such as scree plot) from the real data and simulated (resmpled) data.
+Two dimention reduction method, factor analysis (FA) and principal componend analysis (PCA), are used in the function.
+
 
 # Arguments
 - `data`
@@ -26,6 +31,12 @@ Parallel Analysis.
 - `f` Function for dimension reduction. Default is `fa`.
 
 # Values
+
+- `FA` is a result besed on FA model.
+- `PCA` is a result based on PCA model.
+
+Both of them have `Parallel` struct, which has elements below: 
+
 - `real` Eigen values from read data.
 - `simulated`, `resampled` Mean of eigen values from simulated data.
 - `simulated_bound`, `resampled_bounds` 2.5th and 97.5th perceintile rank values of simulated eigen values.

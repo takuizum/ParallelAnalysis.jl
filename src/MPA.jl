@@ -16,7 +16,23 @@ struct ModifiedParallel{T1<:AbstractVector, T2<:AbstractVector, T3 <: Real} <: M
 end
 
 """
+    modified_parallel(data, niter, fsm::FactorScoreMethod)
+Modified Parallel Analysis (MPA). MPA, which was introduced by [Drasgow and Lissak, 1983](10.1037/0021-9010.68.3.363), is not a method based on simulation.
+After their work, [Finch and Monahan (2008)](10.1080/08957340801926102) proposed a parametric bootstrap variant.
+`modified_parallel` is implemented based on Finch and Monahan's work.
 
+# Arguments
+
+- `data` 
+- `niter`
+- `fsm` is a method for latent trait scoring.
+
+# Values
+
+- `real` Eigen values from read data.
+- `simulated` Mean of eigen values from simulated data.
+- `simulated_bound` 2.5th and 97.5th perceintile rank values of simulated eigen values.
+- `iter` Number of iterations (of the simulation).
 
 # Example
 ```julia
