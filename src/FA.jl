@@ -1,6 +1,7 @@
 
-struct FA{T1<:Real, F1<:FactorAnalysis}
+struct FA{T1<:Real, F1<:FactorAnalysis, R<:AbstractMatrix}
     data
+    mat::R
     fit::F1
     cor
     loadings::AbstractArray{T1}
@@ -34,13 +35,13 @@ function fa_polychoric(M, nfactors = 1; args...)
     S = convert(Matrix{Float64}, polycor(M))
     n = size(S, 1)
     ft = fit(FactorAnalysis, S; mean = fill(0.0, n), maxoutdim = nfactors, args...)
-    FA(M, ft, :Polychoric, loadings(ft), cov(ft), projection(ft), nfactors, n)
+    FA(M, S, ft, :Polychoric, loadings(ft), cov(ft), projection(ft), nfactors, n)
 end
 function fa_pearson(M, nfactors = 1; args...)
-    S = convert(Matrix{Float64}, cor(M))
+    S = convert(Matrix{Float64}, cor(Matrix(M)))
     n = size(S, 1)
     ft = fit(FactorAnalysis, S; mean = fill(0.0, n), maxoutdim = nfactors, args...)
-    FA(M, ft, :Pearson, loadings(ft), cov(ft), projection(ft), nfactors, n)
+    FA(M, S, ft, :Pearson, loadings(ft), cov(ft), projection(ft), nfactors, n)
 end
 
 """
@@ -63,6 +64,6 @@ function show(io::IO, x::FA)
     println(io, "Factor Analysis $(x.cor)")
 end
 
-function communarities(x::FA)
+function communalities(x::FA)
     return loadings(x) .^ 2
 end
