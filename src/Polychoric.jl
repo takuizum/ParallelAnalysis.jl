@@ -147,6 +147,7 @@ function polycor(X)
             r[i, j] = r[j, i]
         end
     end
+    # isposdef(r) && @warn "Matrix is not a positive definite."
     return r
 end
 
@@ -156,3 +157,21 @@ function replace_diagonal!(M)
     M[diagind(M)] .= L
 end
 
+function simulate_polychoric(niter, ρ = 0.5; N = 10_000, cats = (4, 4))
+    function discretize(x, th)
+        sum(th .< x)
+    end
+    ρ̂ = Vector{Float64}(undef, niter)
+    for t in 1:niter
+        raw = rand(MvNormal([0, 0], [1 ρ; ρ 1]), N)'
+        τ1 = sort!(rand(Uniform(-3, 3), cats[1]))
+        τ2 = sort!(rand(Uniform(-3, 3), cats[2]))
+        obs = [discretize.(raw[:, 1], Ref(τ1)) discretize.(raw[:, 2], Ref(τ2)) ]
+        mat = polycor(obs)
+        ρ̂[t] = mat[1, 2]
+    end
+    μ = round(mean(ρ̂); digits = 5)
+    σ = round(std(ρ̂); digits = 5)
+    println("Simulated result: $(μ) and $(σ)")
+    return (μ, σ)
+end

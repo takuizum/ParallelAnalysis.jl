@@ -7,10 +7,13 @@ import Base: show
 using StatsBase: sample
 # Polychoric
 using Trapz: trapz#, @trapz
-using Optim: optimize, Brent
-using LinearAlgebra: LowerTriangular, diagind, Symmetric
+using Optim: optimize, Brent, NelderMead, Fminbox
+using LinearAlgebra # : LowerTriangular, diagind, Symmetric
 using QuadGK: quadgk
 using Distributions, DataFrames
+using Roots: find_zero
+import Distributions: cdf, pdf
+import Statistics: quantile
 # Plot recipes
 using RecipesBase
 
@@ -29,7 +32,11 @@ export generate_response, v2vv, heuristicIRT
 include("PA.jl")
 export parallel
 
+include("SkewNormalPolychoric.jl")
+export snpolycor
+
 export show
+export cdf, pdf, quantile
 
 end
 

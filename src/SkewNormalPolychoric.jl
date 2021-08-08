@@ -12,18 +12,6 @@
 # add Distributions@0.23.10
 
 # Internal functions
-# Too slow
-Distributions.cdf(dist::SkewNormal, x::Real) = quadgk(t->pdf(dist,t), -Inf, x)[1]
-function Statistics.quantile(dist::SkewNormal, β::Float64) 
-    if β == 0.0
-        return -Inf
-    elseif β == 1.0
-        return Inf
-    else
-        find_zero(x -> cdf(dist, x) - β, dist.ξ)
-    end
-end
-
 # Trivariate Normal integration
 function trivariateintegral(d::MvNormal, c₁, c₂, c₃)
     Φ = Distributions.normcdf
@@ -42,90 +30,67 @@ function trivariateintegral(d::MvNormal, c₁, c₂, c₃)
     return Φ(c₃₂) * Φ(c₂₁) * Φ(c₁)
 end
 
-# BivariateSkewedNormal
-#
-# function bivariateskewnormpdf(x₁, x₂, ω, α₁, α₂)
-#     2pdf(MvNormal([0, 0], [1.0 ω; ω 1.0]), [x₁, x₂]) * Distributions.normcdf(x₁ * α₁ + x₂ * α₂)
-# end
+# BivariateSkewNormal
 
-struct BivariateSkewNormal <: ContinuousMultivariateDistribution
-    μ
-    Σ
-    α
-    function BivariateSkewNormal(μ, Σ, α)
-        if !(length(μ) == length(α) == size(Σ, 1) == size(Σ, 2))
-            @error "The size of coordinates for each parameters do not match."
-        else
-            new(μ, Σ, α)
-        end
+abstract type AbstractBivariateSkewNormal <: ContinuousMultivariateDistribution end
+struct BivariateSkewNormal{T1<:AbstractVector, T2<:AbstractMatrix} <: AbstractBivariateSkewNormal
+    μ::T1
+    Σ::T2
+    α::T1
+    # function BivariateSkewNormal(μ, Σ, α)
+    #     if !(length(μ) == length(α) == size(Σ, 1) == size(Σ, 2))
+    #         throw(ArgumentError("Lengths of each coordinates of parameters differ."))
+    #     else
+    #         new(μ, Σ, α)
+    #     end
+    # end
+end
+
+# Too slow
+Distributions.cdf(dist::SkewNormal, x::Real) = quadgk(t->pdf(dist,t), -Inf, x)[1]
+function Statistics.quantile(dist::SkewNormal, β::Float64) 
+    if β == 0.0
+        return -Inf
+    elseif β == 1.0
+        return Inf
+    else
+        find_zero(x -> cdf(dist, x) - β, 0.0)
     end
 end
 
-function Distributions.pdf(d::BivariateSkewNormal, x::AbstractArray{T,1}) where T
-    2*pdf(MvNormal(d.μ, d.Σ), x) * Distributions.normcdf(d.α'x)
+
+function Distributions.pdf(d::AbstractBivariateSkewNormal, x::AbstractArray{T,1}) where T
+    return 2*pdf(MvNormal(d.μ, d.Σ), x) * Distributions.normcdf(d.α'x)
 end
 
-function Distributions.cdf(d::BivariateSkewNormal, c::AbstractArray{T,1}) where T
+function Distributions.cdf(d::AbstractBivariateSkewNormal, c::AbstractArray{T,1}) where T
     Ψ = d.Σ
     α = d.α
     Σ = [
         1+α'Ψ*α  -α'Ψ
         -Ψ*α      Ψ
     ]
-    2trivariateintegral(MvNormal(Σ), 0.0, c[1], c[2])
+    return 2trivariateintegral(MvNormal(Σ), 0.0, c[1], c[2])
 end
 
 # Numerical integration for bivariate skew normal
-function H(a, b, c, d, mvd::BivariateSkewNormal)
+function H(a, b, c, d, mvd::AbstractBivariateSkewNormal)
     A1 = a == -Inf || c == -Inf ?  0.0 : cdf(mvd, [a, c])
     A2 = a == -Inf ? 0.0 : cdf(mvd, [a, d])
     A3 = c == -Inf ? 0.0 : cdf(mvd, [b, c])
     A4 = d == Inf && b == Inf ? 1.0 : cdf(mvd, [b, d])
-    # if (A1 - A2 - A3 + A4) < 0.0
-    #     @warn "Volumes of a rectangles are $([A1, A2, A3, A4]) at $([a, b, c, d]) on\n$(mvd) is negative."
-    # end
     return A1 - A2 - A3 + A4
 end
 
-function marginalparameters(d::BivariateSkewNormal, i)
+function marginalparameters(d::AbstractBivariateSkewNormal, i)
     c = Dict(1 => 2, 2 => 1)
     Ω = d.Σ[c[i],c[i]] - d.Σ[c[i],i] / d.Σ[i,i] * d.Σ[i,c[i]] # 1- ω²
     (d.α[i] + d.Σ[i,c[i]]/d.Σ[i,i]*d.α[c[i]]) / √(1+d.α[c[i]]^2* Ω)
 end
 
-function snpolyc(t::ConTab)
-    # non iterative, psedo-MLE
-    cumx = [0.0; cumsum(t.mx)[1:end-1]; 1.0]
-    cumy = [0.0; cumsum(t.my)[1:end-1]; 1.0]
-    # ξx = quantile.(SkewNormal(0.0, 1.0, 0.0), cumx)
-    # ξy = quantile.(SkewNormal(0.0, 1.0, 0.0), cumy)
-    # # Heuristic version
-    # opt = optimize(θ -> loss(t, ξx, ξy, BivariateSkewNormal([0, 0], [1.0 θ[1]; θ[1] 1.0], [θ[2], θ[3]])), [-1.0, -Inf, -Inf], [1.0, Inf, Inf], [0.0, 0.0, 0.0], Fminbox(NelderMead()))
-    # Complex model
-    opt = optimize(θ -> loss2(t, cumx, cumy, BivariateSkewNormal([0, 0], [1.0 θ[1]; θ[1] 1.0], [θ[2], θ[3]])), [-1.0, -Inf, -Inf], [1.0, Inf, Inf], [0.0, 0.0, 0.0], Fminbox(NelderMead()))
-    # calculate parameters on marginal distributions
-    θ′ = opt.minimizer
-    α₁ = marginalparameters(BivariateSkewNormal([0, 0], [1.0 θ′[1]; θ′[1] 1.0], [θ′[2], θ′[3]]), 1)
-    α₂ = marginalparameters(BivariateSkewNormal([0, 0], [1.0 θ′[1]; θ′[1] 1.0], [θ′[2], θ′[3]]), 2)
-    ξx = quantile.(SkewNormal(0.0, 1.0, α₁), cumx)
-    ξy = quantile.(SkewNormal(0.0, 1.0, α₂), cumy)
-    ω = θ′[1]
-    δ₁ = α₁ / sqrt(1 + α₁^2)
-    δ₂ = α₂ / sqrt(1 + α₂^2)
-    𝜓 = (ω - δ₁*δ₂) / sqrt((1 - δ₁) * (1 - δ₂))
-    ρ = (ω - 1/(2π) * δ₁*δ₂) / sqrt((1 - 2*δ₁^2/π) * (1 - 2*δ₂^2/π))
-    return (ρ = ρ, r = 2sin(ρ * π / 6), τ₁ = ξx, τ₂ = ξy, α₁ = α₁, α₂ = α₂)
-end
-
-function snpolyc(x, y)
-    tab = ConTab(x, y)
-    snpolyc(tab)
-end
-
-
 function loss2(t::ConTab, cumx, cumy, d::MultivariateDistribution)
-    ξx = quantile.(SkewNormal(0.0, 1.0, marginalparameters(d, 1)), cumx)
-    ξy = quantile.(SkewNormal(0.0, 1.0, marginalparameters(d, 2)), cumy)
+    ξx = quantile.(Ref(SkewNormal(0.0, 1.0, marginalparameters(d, 1))), cumx)
+    ξy = quantile.(Ref(SkewNormal(0.0, 1.0, marginalparameters(d, 2))), cumy)
     I, J = size(t.X)
     h = zeros(Float64, I, J)
     @fastmath for i in 1:I, j in 1:J
@@ -138,15 +103,50 @@ function loss2(t::ConTab, cumx, cumy, d::MultivariateDistribution)
         else
             h[i, j] = H(ξx[i], ξx[i+1], ξy[j], ξy[j+1], d)
         end
-        # h[i, j] = H(ξx[i], ξx[i+1], ξy[j], ξy[j+1], d, step)
     end
     if any(h .< 0.0)
-        # @warn("Fail to optimize parameters. Return, on the way, the volume of the rectangles of SkewNormal")
-        # @show h, d
         h = abs.(h)
     end
     h = h ./ sum(h)
     return - sum(t.X .* log.(h))
-    # return - prod(t.X .^ h)
 end
 
+function snpolyc(t::ConTab)
+    cumx = [0.0; cumsum(t.mx)[1:end-1]; 1.0]
+    cumy = [0.0; cumsum(t.my)[1:end-1]; 1.0]
+    # Optimization ρ and thresholds, simultaneously
+    opt = optimize(θ -> loss2(t, cumx, cumy, BivariateSkewNormal([.0, .0], [1.0 θ[1]; θ[1] 1.0], [θ[2], θ[3]])), [-1.0, -Inf, -Inf], [1.0, Inf, Inf], [0.0, 0.0, 0.0], Fminbox(NelderMead()))
+    # calculate parameters on marginal distributions
+    θ′ = opt.minimizer
+    α₁ = marginalparameters(BivariateSkewNormal([.0, .0], [1.0 θ′[1]; θ′[1] 1.0], [θ′[2], θ′[3]]), 1)
+    α₂ = marginalparameters(BivariateSkewNormal([.0, .0], [1.0 θ′[1]; θ′[1] 1.0], [θ′[2], θ′[3]]), 2)
+    ξx = quantile.(Ref(SkewNormal(0.0, 1.0, α₁)), cumx)
+    ξy = quantile.(Ref(SkewNormal(0.0, 1.0, α₂)), cumy)
+    ω = θ′[1]
+    δ₁ = α₁ / sqrt(1 + α₁^2)
+    δ₂ = α₂ / sqrt(1 + α₂^2)
+    𝜓 = (ω - δ₁*δ₂) / sqrt((1 - δ₁) * (1 - δ₂))
+    ρ = (ω - 1/(2π) * δ₁*δ₂) / sqrt((1 - 2*δ₁^2/π) * (1 - 2*δ₂^2/π))
+    return (ρ = ρ, r = 2sin(ρ * π / 6), τ₁ = ξx, τ₂ = ξy, α₁ = α₁, α₂ = α₂)
+end
+
+function snpolyc(x, y)
+    tab = contab(x, y; verbose = false)
+    snpolyc(tab)
+end
+
+function snpolycor(X)
+    J = size(X, 2)
+    r = Matrix{Float64}(undef, J, J)
+    r[diagind(r)] .= 1.0
+    for i in 1:J
+        x = @view X[:, i]
+        for j in i+1:J
+            y = @view X[:, j]
+            r[j, i] = snpolyc(x, y).ρ
+            r[i, j] = r[j, i]
+        end
+    end
+    # isposdef(r) && @warn "Matrix is not a positive definite."
+    return r
+end
