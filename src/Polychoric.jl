@@ -58,26 +58,23 @@ function ppdf(f, m)
     g(h, k, θ) = exp(-0.5 * (h^2 + k^2 - 2*h*k*θ)/(1-θ^2)) / sqrt(1-θ^2 )
     Φ(x) = cdf(Normal(0, 1), x)
     return quadgk(t->g(m[1], m[2], t), 0, f.Σ[1,2])[1] / 2π + Φ(m[1])*Φ(m[2])
-    # v = range(0, f.Σ[1,2], length = 20) 
-    # V = @trapz v x g(m[1], m[2], x)
-    # return V / 2π + Φ(m[1])*Φ(m[2])
 end
 
 # Numerical integration with sophisticated 1dim version
 function H(a, b, c, d, mvd::MvNormal)
-    A1 = a == -Inf || c == -Inf ?  0.0 : ppdf(mvd, [a, c])
+    A1 = (a == -Inf) || (c == -Inf) ?  0.0 : ppdf(mvd, [a, c])
     A2 = a == -Inf ? 0.0 : ppdf(mvd, [a, d])
     A3 = c == -Inf ? 0.0 : ppdf(mvd, [b, c])
-    A4 = d == Inf && b == Inf ? 1.0 : ppdf(mvd, [b, d])
+    A4 = (d == Inf) && (b == Inf) ? 1.0 : ppdf(mvd, [b, d])
     return A1 - A2 - A3 + A4
 end
 
 # Loss function
-function loss(t::ConTab, ξx, ξy, d::MultivariateDistribution)
+function loss(t::ConTab, ξx, ξy, d::MvNormal)
     I, J = size(t.X)
     h = zeros(Float64, I, J)
     @fastmath for i in 1:I, j in 1:J
-        if i == I && j == J && sum(h) < 1.0
+        if (i == I) && (j == J) && (sum(h) < 1.0)
             h[i, j] = 1.0 - sum(h)
         elseif i == I
             h[i, j] = t.my[j] - sum(h[1:end-1, j])[1]

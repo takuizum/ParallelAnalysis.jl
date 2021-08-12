@@ -6,12 +6,14 @@ import MultivariateStats: loadings
 import Base: show
 using StatsBase: sample
 # Polychoric
-using Trapz: trapz#, @trapz
+using Trapz: trapz, @trapz
+using Cuba: cuhre
+using QuadGK: quadgk
 using Optim: optimize, Brent, NelderMead, Fminbox
 using LinearAlgebra # : LowerTriangular, diagind, Symmetric
-using QuadGK: quadgk
 using Distributions, DataFrames
 using Roots: find_zero
+using ForwardDiff
 import Distributions: cdf, pdf
 import Statistics: quantile
 # Plot recipes
@@ -34,6 +36,9 @@ export parallel
 
 include("SkewNormalPolychoric.jl")
 export snpolycor
+
+include("AlphaSkewNormal.jl")
+export asnpolycor
 
 export show
 export cdf, pdf, quantile
