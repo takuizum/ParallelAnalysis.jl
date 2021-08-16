@@ -51,6 +51,34 @@ julia> random_sample(X)
 ```
 """
 function random_sample(x)
-	n = size(x, 1)
-	hcat(map(i -> sample(i, n; replace = true), eachcol(x))...)
+    n = size(x, 1)
+    hcat(map(i -> sample_atleast2(i, n; replace = true), eachcol(x))...)
+    [sample(i, n; replace = true) for i in eachcol(x)]
+end
+
+
+"""
+	sample_atleast2(i, n; args...)
+Sample `n` size vector from a set `i`.
+
+# Example
+```julia
+julia> using StatsBase, Statistics
+julia> x = vcat(fill(1, 100), fill(0, 1));
+julia> var(sample(x, 101; replace = true))
+julia> var(sample_atleast2(x, 101; replace = true))
+
+```
+"""
+function sample_atleast2(i, n; args...)
+	length(unique(i)) == 1 && throw(ArgumentError("Unique sample set contains only one element."))
+	iter = 1
+	y = sample(i, n; args...)
+	while iter ≤ 100
+		length(unique(y)) ≥ 2 && break
+		iter += 1
+		y = sample(i, n; args...)
+	end
+	iter ≥ 100 && throw(ArgumentError("Over 100 resampling, the condition (at least 2 elements) was not satisfied. Data might has too small variance."))
+	return y
 end
