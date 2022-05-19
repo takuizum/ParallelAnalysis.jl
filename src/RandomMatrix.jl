@@ -53,7 +53,6 @@ julia> random_sample(X)
 function random_sample(x)
     n = size(x, 1)
     hcat(map(i -> sample_atleast2(i, n; replace = true), eachcol(x))...)
-    [sample(i, n; replace = true) for i in eachcol(x)]
 end
 
 
